@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}RecycleTrace{% endblock %} — Waste Tracking Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>" />
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+
+{% block full_page %}
+<div class="app-layout">
+  {% if current_user_id %}
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">
+        <span class="logo-icon">♻</span>
+        <span class="logo-text">RecycleTrace</span>
+      </div>
+      <button class="sidebar-close" id="sidebarClose" aria-label="Close menu">✕</button>
+    </div>
+
+    <nav class="sidebar-nav">
+      {% if current_user_role == 'citizen' %}
+        <a href="/dashboard" class="nav-item {% block nav_dashboard %}{% endblock %}">
+          <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/citizen/batches" class="nav-item {% block nav_batches %}{% endblock %}">
+          <span class="nav-icon">📦</span> My Batches
+        </a>
+        <a href="/citizen/new-batch" class="nav-item {% block nav_new %}{% endblock %}">
+          <span class="nav-icon">＋</span> New Request
+        </a>
+      {% elif current_user_role == 'collector' %}
+        <a href="/collector" class="nav-item {% block nav_collector %}{% endblock %}">
+          <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/collector" class="nav-item">
+          <span class="nav-icon">🚛</span> Assignments
+        </a>
+      {% elif current_user_role == 'facility_operator' %}
+        <a href="/facility" class="nav-item {% block nav_facility %}{% endblock %}">
+          <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/facility/submit-report" class="nav-item">
+          <span class="nav-icon">📋</span> Submit Report
+        </a>
+      {% elif current_user_role == 'admin' %}
+        <a href="/admin" class="nav-item {% block nav_admin %}{% endblock %}">
+          <span class="nav-icon">⊞</span> Dashboard
+        </a>
+        <a href="/admin/analytics" class="nav-item {% block nav_analytics %}{% endblock %}">
+          <span class="nav-icon">📊</span> Analytics
+        </a>
+        <a href="/admin/facilities" class="nav-item {% block nav_admin_fac %}{% endblock %}">
+          <span class="nav-icon">🏭</span> Facilities
+        </a>
+        <a href="/admin/evidence-review" class="nav-item {% block nav_evidence %}{% endblock %}">
+          <span class="nav-icon">🔍</span> Evidence Review
+        </a>
+        <a href="/admin/audit-logs" class="nav-item {% block nav_audit %}{% endblock %}">
+          <span class="nav-icon">📜</span> Audit Logs
+        </a>
+      {% endif %}
+      <a href="/profile" class="nav-item {% block nav_profile %}{% endblock %}">
+        <span class="nav-icon">👤</span> Profile
+      </a>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-badge">
+        <div class="user-avatar">{{ current_user_name[0].upper() if current_user_name else '?' }}</div>
+        <div class="user-info">
+          <span class="user-name">{{ current_user_name }}</span>
+          <span class="user-role role-badge role-{{ current_user_role }}">{{ current_user_role | replace('_', ' ') | title }}</span>
+        </div>
+      </div>
+      <button class="btn btn-ghost btn-sm logout-btn" id="logoutBtn">Sign out</button>
+    </div>
+  </aside>
+
+  <!-- Main Content -->
+  <div class="main-content">
+    <header class="top-bar">
+      <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
+      <div class="top-bar-title">{% block page_title %}{% endblock %}</div>
+      <div class="top-bar-actions">{% block top_actions %}{% endblock %}</div>
+    </header>
+
+    <main class="page-content">
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+  {% else %}
+  <!-- Public layout -->
+  <main class="public-content" style="width:100%; min-height:100vh;">
+    {{ self.content() }}
+  </main>
+  {% endif %}
+</div>
+{% endblock %}
+
+<!-- Toast container -->
+<div id="toastContainer" class="toast-container"></div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+</body>
+</html>

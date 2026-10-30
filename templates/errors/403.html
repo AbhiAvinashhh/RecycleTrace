@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}403 Forbidden{% endblock %}
+{% block content %}
+<div style="text-align:center; padding: 5rem 1rem;">
+  <div style="font-size: 4rem; font-weight: 800; color: #b91c1c;">403</div>
+  <h2>Access Denied</h2>
+  <p style="color: #64748b; margin-top: 0.5rem;">You do not possess the required role permissions to perform this operation.</p>
+  <a href="/dashboard" class="btn btn-primary" style="margin-top: 1.5rem;">Return to Dashboard</a>
+</div>
+{% endblock %}
+

@@ -1,0 +1,145 @@
+{% extends "base.html" %}
+{% block title %}Administrator Dashboard{% endblock %}
+{% block nav_admin %}active{% endblock %}
+{% block page_title %}Platform Administration & Audit{% endblock %}
+
+{% block top_actions %}
+<a href="/admin/analytics" class="btn btn-primary btn-sm">Full Analytics 📊</a>
+<a href="/admin/evidence-review" class="btn btn-outline btn-sm">Pending Reviews 🔍</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid-kpi">
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Total Batches</span>
+      <span class="kpi-icon">📦</span>
+    </div>
+    <div class="kpi-value" id="adminTotalBatches">0</div>
+    <span class="kpi-subtext">Across all citizens</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Verified Recycled</span>
+      <span class="kpi-icon">✅</span>
+    </div>
+    <div class="kpi-value" id="adminVerifiedBatches">0</div>
+    <span class="kpi-subtext">Auditor approved</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Pending Verification</span>
+      <span class="kpi-icon">⏳</span>
+    </div>
+    <div class="kpi-value" id="adminPendingReview">0</div>
+    <span class="kpi-subtext">Awaiting audit review</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Verified Facilities</span>
+      <span class="kpi-icon">🏭</span>
+    </div>
+    <div class="kpi-value" id="adminVerifiedFacs">0</div>
+    <span class="kpi-subtext">Authorized operators</span>
+  </div>
+</div>
+
+<!-- Quick Navigation cards -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:1.25rem; margin-bottom:1.5rem;">
+  <div class="card" style="margin-bottom:0;">
+    <h3 class="card-title">🔍 Evidence Verification</h3>
+    <p style="font-size:0.875rem; color:#64748b; margin:0.5rem 0 1rem;">
+      Review submitted processing records, reconcile input and output weights, and verify or reject recycling claims.
+    </p>
+    <a href="/admin/evidence-review" class="btn btn-primary btn-sm">Go to Evidence Review</a>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <h3 class="card-title">🏭 Facility Verification</h3>
+    <p style="font-size:0.875rem; color:#64748b; margin:0.5rem 0 1rem;">
+      Approve or suspend facility registrations to ensure only accredited organizations handle community waste.
+    </p>
+    <a href="/admin/facilities" class="btn btn-outline btn-sm">Manage Facilities</a>
+  </div>
+  <div class="card" style="margin-bottom:0;">
+    <h3 class="card-title">📜 Immutable Audit Log</h3>
+    <p style="font-size:0.875rem; color:#64748b; margin:0.5rem 0 1rem;">
+      Inspect tamper-evident records of every administrative action, status change, and login event.
+    </p>
+    <a href="/admin/audit-logs" class="btn btn-outline btn-sm">View Audit Trail</a>
+  </div>
+</div>
+
+<!-- Flagged Suspicious Batches -->
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title" style="color:#b91c1c;">⚠️ Suspicious Weight Discrepancies & Flagged Batches</h3>
+    <span class="status-badge status-rejected">Integrity Alert</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Batch ID</th>
+          <th>Input (kg)</th>
+          <th>Reported Recycled (kg)</th>
+          <th>Discrepancy %</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="discrepancyTableBody">
+        <tr><td colspan="6" style="text-align:center; padding:1.5rem;">Checking for discrepancies...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAdminOverview() {
+  try {
+    const sRes = await fetch('/api/admin/stats');
+    const stats = await sRes.json();
+
+    document.getElementById('adminTotalBatches').textContent = stats.total_batches || 0;
+    document.getElementById('adminVerifiedBatches').textContent = stats.verified_recycled || 0;
+    document.getElementById('adminPendingReview').textContent = stats.pending_processing_review || 0;
+    document.getElementById('adminVerifiedFacs').textContent = stats.verified_facilities || 0;
+
+    // Load suspicious batches from verification analytics
+    const vRes = await fetch('/api/analytics/verification');
+    const vData = await vRes.json();
+    const tbody = document.getElementById('discrepancyTableBody');
+
+    const suspicious = vData.suspicious_batches || [];
+    if (suspicious.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:#166534; padding:1.5rem;">No unexplained discrepancies detected across active records.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    suspicious.forEach(item => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><a href="/batch/${item.batch_id}" style="font-family:monospace; font-weight:700;">${item.batch_id}</a></td>
+        <td>${formatWeight(item.input_weight_kg)}</td>
+        <td>${formatWeight(item.recycled_output_kg)}</td>
+        <td style="color:#b91c1c; font-weight:700;">${item.discrepancy_pct}%</td>
+        <td><span class="status-badge status-${item.verification_status}">${item.verification_status}</span></td>
+        <td>
+          <a href="/admin/evidence-review" class="btn btn-danger btn-sm">Inspect</a>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    showToast('Failed to load admin stats', 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadAdminOverview);
+</script>
+{% endblock %}
+

@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RecycleTrace — Verify Your Waste is Actually Recycled</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>" />
+</head>
+<body class="landing-page">
+
+<!-- Navigation -->
+<nav class="landing-nav">
+  <div class="nav-container">
+    <div class="nav-brand">
+      <span class="logo-icon">♻</span>
+      <span class="logo-text">RecycleTrace</span>
+    </div>
+    <div class="nav-links">
+      <a href="#how-it-works">How It Works</a>
+      <a href="#verification">Verification</a>
+      <a href="#roles">Who's Involved</a>
+    </div>
+    <div class="nav-cta">
+      <a href="/login" class="btn btn-ghost">Sign In</a>
+      <a href="/register" class="btn btn-primary">Get Started</a>
+    </div>
+    <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+  </div>
+  <div class="mobile-nav" id="mobileNav">
+    <a href="#how-it-works">How It Works</a>
+    <a href="#verification">Verification</a>
+    <a href="/login" class="btn btn-ghost">Sign In</a>
+    <a href="/register" class="btn btn-primary">Get Started</a>
+  </div>
+</nav>
+
+<!-- Hero Section -->
+<section class="hero">
+  <div class="hero-container">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      Academic Project · NoSQL Databases · MongoDB
+    </div>
+    <h1 class="hero-title">
+      Can you prove your waste<br />
+      <span class="hero-accent">was actually recycled?</span>
+    </h1>
+    <p class="hero-subtitle">
+      RecycleTrace is a transparent waste tracking platform that follows your segregated waste
+      from collection through verified recycling — giving citizens proof, not just promises.
+    </p>
+    <div class="hero-actions">
+      <a href="/register" class="btn btn-primary btn-lg">Start Tracking Free</a>
+      <a href="#how-it-works" class="btn btn-outline btn-lg">See How It Works</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <span class="stat-number" id="statBatches">—</span>
+        <span class="stat-label">Batches Registered</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number" id="statVerified">—</span>
+        <span class="stat-label">Kg Verified Recycled</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number" id="statFacilities">—</span>
+        <span class="stat-label">Verified Facilities</span>
+      </div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="tracking-preview">
+      <div class="preview-header">
+        <span class="preview-id">WT-2026-1042</span>
+        <span class="status-badge status-verified">✓ Verified Recycled</span>
+      </div>
+      <div class="preview-timeline">
+        <div class="timeline-step done">
+          <span class="step-dot">✓</span>
+          <span class="step-label">Registered</span>
+          <span class="step-date">Oct 20</span>
+        </div>
+        <div class="timeline-step done">
+          <span class="step-dot">✓</span>
+          <span class="step-label">Collected</span>
+          <span class="step-date">Oct 21</span>
+        </div>
+        <div class="timeline-step done">
+          <span class="step-dot">✓</span>
+          <span class="step-label">In Transit</span>
+          <span class="step-date">Oct 21</span>
+        </div>
+        <div class="timeline-step done">
+          <span class="step-dot">✓</span>
+          <span class="step-label">Received</span>
+          <span class="step-date">Oct 22</span>
+        </div>
+        <div class="timeline-step done">
+          <span class="step-dot">✓</span>
+          <span class="step-label">Processed</span>
+          <span class="step-date">Oct 23</span>
+        </div>
+        <div class="timeline-step active">
+          <span class="step-dot verified-dot">✓</span>
+          <span class="step-label">Verified Recycled</span>
+          <span class="step-date">Oct 24</span>
+        </div>
+      </div>
+      <div class="preview-weights">
+        <div class="weight-row">
+          <span>Input:</span> <strong>12.4 kg</strong>
+        </div>
+        <div class="weight-row recycled">
+          <span>Recycled Output:</span> <strong>10.8 kg</strong>
+        </div>
+        <div class="weight-row">
+          <span>Residual:</span> <strong>1.6 kg</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Problem Section -->
+<section class="problem-section">
+  <div class="container">
+    <div class="section-badge">The Problem</div>
+    <h2>Segregation without verification is just sorting</h2>
+    <p class="section-subtitle">
+      Millions of citizens dutifully separate plastic, paper, and glass — but have no way
+      to know if it ends up in a landfill anyway. Recycling claims are largely unverifiable.
+    </p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon">🤷</div>
+        <h3>No Visibility</h3>
+        <p>Once waste leaves your doorstep, there's no tracking. It could go anywhere.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">📋</div>
+        <h3>Unverified Claims</h3>
+        <p>Facilities report recycling numbers with no independent review of evidence.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon">⚖️</div>
+        <h3>No Accountability</h3>
+        <p>Missing weight, quantity discrepancies, and skipped stages go unnoticed.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- How It Works -->
+<section class="how-it-works" id="how-it-works">
+  <div class="container">
+    <div class="section-badge">The Solution</div>
+    <h2>A complete chain of custody for your waste</h2>
+    <p class="section-subtitle">
+      Every batch gets a unique ID and QR code. Every transfer is recorded by an authorized
+      operator. Every recycling claim is reviewed before it becomes verified.
+    </p>
+    <div class="steps-grid">
+      <div class="step-card">
+        <div class="step-number">1</div>
+        <div class="step-icon">📝</div>
+        <h3>Register Your Waste</h3>
+        <p>Select category, enter estimated weight, and get a unique batch ID and QR code.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">2</div>
+        <div class="step-icon">🚛</div>
+        <h3>Collector Confirms Pickup</h3>
+        <p>An authorized collector records the actual weight and confirms transport to a facility.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">3</div>
+        <div class="step-icon">🏭</div>
+        <h3>Facility Processes & Reports</h3>
+        <p>The recycling facility records input, recycled output, rejected, and residual weights with evidence.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-number">4</div>
+        <div class="step-icon">✅</div>
+        <h3>Auditor Verifies</h3>
+        <p>An independent reviewer checks evidence and weight reconciliation before marking anything as verified.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Verification Section -->
+<section class="verification-section" id="verification">
+  <div class="container">
+    <div class="section-badge">What Verified Means</div>
+    <h2>We distinguish what others conflate</h2>
+    <div class="verification-grid">
+      <div class="vstate-card vstate-partial">
+        <div class="vstate-icon">📦</div>
+        <h3>Collected</h3>
+        <p>A collector confirmed pickup and recorded weight. The waste left your home.</p>
+      </div>
+      <div class="vstate-card vstate-partial">
+        <div class="vstate-icon">🏭</div>
+        <h3>Received at Facility</h3>
+        <p>A verified facility confirmed receipt. Weight at arrival is on record.</p>
+      </div>
+      <div class="vstate-card vstate-partial">
+        <div class="vstate-icon">📋</div>
+        <h3>Processing Reported</h3>
+        <p>The facility submitted a processing report with claimed output quantities.</p>
+      </div>
+      <div class="vstate-card vstate-verified">
+        <div class="vstate-icon">✓</div>
+        <h3>Verified Recycled</h3>
+        <p>An auditor reviewed the evidence and weight reconciliation. This is actual proof.</p>
+        <div class="vstate-note">Only this status means recycled.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Roles Section -->
+<section class="roles-section" id="roles">
+  <div class="container">
+    <div class="section-badge">Who's Involved</div>
+    <h2>Four roles, one transparent system</h2>
+    <div class="roles-grid">
+      <div class="role-card">
+        <div class="role-icon">🏠</div>
+        <h3>Citizens</h3>
+        <p>Register waste, track batches, download QR codes, view verified outcomes.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🚛</div>
+        <h3>Collectors</h3>
+        <p>Confirm pickup, record weights, transfer to authorized facilities.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🏭</div>
+        <h3>Facility Operators</h3>
+        <p>Receive batches, record processing, upload evidence, submit reports.</p>
+      </div>
+      <div class="role-card">
+        <div class="role-icon">🔍</div>
+        <h3>Auditors / Admins</h3>
+        <p>Review evidence, approve or reject reports, flag discrepancies, manage the platform.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="container">
+    <h2>Ready to verify your recycling?</h2>
+    <p>Join as a citizen to track your waste, or register your facility to participate.</p>
+    <div class="cta-actions">
+      <a href="/register?role=citizen" class="btn btn-primary btn-lg">Register as Citizen</a>
+      <a href="/register?role=facility_operator" class="btn btn-outline btn-lg">Register Facility</a>
+    </div>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="landing-footer">
+  <div class="container">
+    <div class="footer-brand">
+      <span class="logo-icon">♻</span>
+      <span class="logo-text">RecycleTrace</span>
+    </div>
+    <p class="footer-note">
+      Academic prototype · Intelligent NoSQL Databases Course · MongoDB
+    </p>
+    <div class="footer-links">
+      <a href="/login">Sign In</a>
+      <a href="/register">Register</a>
+      <a href="/track/WT-2026-1001">Public Tracking Demo</a>
+    </div>
+  </div>
+</footer>
+
+<div id="toastContainer" class="toast-container"></div>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+  // Load public stats
+  fetch('/api/admin/stats').then(r => r.json()).then(data => {
+    if (data.total_batches !== undefined) {
+      document.getElementById('statBatches').textContent = data.total_batches.toLocaleString();
+      document.getElementById('statVerified').textContent = '—';
+      document.getElementById('statFacilities').textContent = (data.verified_facilities || 0).toLocaleString();
+    }
+  }).catch(() => {});
+
+  // Mobile nav
+  document.getElementById('mobileMenuBtn')?.addEventListener('click', () => {
+    document.getElementById('mobileNav').classList.toggle('open');
+  });
+});
+</script>
+</body>
+</html>

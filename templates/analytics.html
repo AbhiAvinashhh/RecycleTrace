@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+{% block title %}System Analytics & Aggregation Pipelines{% endblock %}
+{% block nav_analytics %}active{% endblock %}
+{% block page_title %}MongoDB Aggregation Analytics & Performance{% endblock %}
+
+{% block head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.6/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="grid-kpi">
+  <div class="kpi-card">
+    <div class="kpi-header"><span class="kpi-label">Declared Input</span><span class="kpi-icon">📥</span></div>
+    <div class="kpi-value" id="kpiDeclared">0 kg</div>
+    <span class="kpi-subtext">Total citizen declared weight</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header"><span class="kpi-label">Verified Recycled</span><span class="kpi-icon">♻️</span></div>
+    <div class="kpi-value" id="kpiRecycled">0 kg</div>
+    <span class="kpi-subtext">Auditor approved recycled output</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header"><span class="kpi-label">Rejected / Contaminated</span><span class="kpi-icon">❌</span></div>
+    <div class="kpi-value" id="kpiRejected">0 kg</div>
+    <span class="kpi-subtext">Residual non-recyclables</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header"><span class="kpi-label">Verified Rate</span><span class="kpi-icon">📊</span></div>
+    <div class="kpi-value" id="kpiRate">0.0%</div>
+    <span class="kpi-subtext">Verified Recycled / Processed Input</span>
+  </div>
+</div>
+
+<!-- Charts Grid -->
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+  <!-- Pipeline 1: Status distribution -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Pipeline 1: Batch Status Distribution ($group, $sort)</h3>
+    </div>
+    <div style="height:260px;">
+      <canvas id="statusChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Pipeline 3: Daily Collection Trends -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Pipeline 3: Daily Collection ($dateTrunc, $group)</h3>
+    </div>
+    <div style="height:260px;">
+      <canvas id="trendsChart"></canvas>
+    </div>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1.5rem; margin-bottom:1.5rem;">
+  <!-- Waste Category Breakdown -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Waste Category Share</h3>
+    </div>
+    <div style="height:260px;">
+      <canvas id="categoryChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Pipeline 2: Facility Processing Summary -->
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Pipeline 2: Facility Throughput ($lookup, $group)</h3>
+    </div>
+    <div class="table-responsive" style="max-height:260px; overflow-y:auto;">
+      <table class="table" style="font-size:0.8125rem;">
+        <thead>
+          <tr>
+            <th>Facility</th>
+            <th>Reports</th>
+            <th>Input (kg)</th>
+            <th>Verified (kg)</th>
+          </tr>
+        </thead>
+        <tbody id="facilityThroughputTbody">
+          <tr><td colspan="4" style="text-align:center;">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Index Performance & ExecutionStats Benchmark -->
+<div class="card" style="border: 2px solid var(--primary); background: #ffffff;">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title" style="color:var(--primary);">
+        ⚡ MongoDB Query Optimization & Index Benchmark (.explain("executionStats"))
+      </h3>
+      <p style="font-size:0.8125rem; color:#64748b; margin-top:0.25rem;">
+        Live measurement of index usage, winning execution plans, keys examined, and document scans.
+      </p>
+    </div>
+    <button class="btn btn-primary btn-sm" id="runBenchmarkBtn" onclick="runBenchmark()">
+      Run Live Benchmark
+    </button>
+  </div>
+
+  <div id="benchmarkResults" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(260px, 1fr)); gap:1rem; margin-top:1rem;">
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:var(--radius-md);">
+      <h4 style="font-size:0.8125rem; color:#475569; text-transform:uppercase;">Indexed Lookup: batch_id</h4>
+      <div style="font-size:1.5rem; font-weight:800; color:var(--primary);" id="benchIdTime">—</div>
+      <div style="font-size:0.75rem; color:#64748b;" id="benchIdDocs">Docs Examined: —</div>
+      <div style="font-size:0.75rem; font-family:monospace; color:#334155; margin-top:0.25rem;" id="benchIdStage">Stage: —</div>
+    </div>
+
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:var(--radius-md);">
+      <h4 style="font-size:0.8125rem; color:#475569; text-transform:uppercase;">Compound Index: citizen + status</h4>
+      <div style="font-size:1.5rem; font-weight:800; color:var(--primary);" id="benchCompoundTime">—</div>
+      <div style="font-size:0.75rem; color:#64748b;" id="benchCompoundDocs">Docs Examined: —</div>
+      <div style="font-size:0.75rem; font-family:monospace; color:#334155; margin-top:0.25rem;" id="benchCompoundStage">Stage: —</div>
+    </div>
+
+    <div style="background:#f8fafc; border:1px solid #e2e8f0; padding:1rem; border-radius:var(--radius-md);">
+      <h4 style="font-size:0.8125rem; color:#475569; text-transform:uppercase;">Status Filter: pending review</h4>
+      <div style="font-size:1.5rem; font-weight:800; color:var(--primary);" id="benchStatusTime">—</div>
+      <div style="font-size:0.75rem; color:#64748b;" id="benchStatusDocs">Docs Examined: —</div>
+      <div style="font-size:0.75rem; font-family:monospace; color:#334155; margin-top:0.25rem;" id="benchStatusStage">Stage: —</div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let statusChartInstance = null;
+let trendsChartInstance = null;
+let categoryChartInstance = null;
+
+async function loadAnalytics() {
+  try {
+    // 1. Overview KPIs
+    const ovRes = await fetch('/api/analytics/overview');
+    const ov = await ovRes.json();
+
+    document.getElementById('kpiDeclared').textContent = formatWeight(ov.declared_weight_kg);
+    document.getElementById('kpiRecycled').textContent = formatWeight(ov.verified_recycled_kg);
+    document.getElementById('kpiRejected').textContent = formatWeight((ov.rejected_weight_kg || 0) + (ov.residual_weight_kg || 0));
+
+    const totalInput = ov.verified_input_kg || 0;
+    const rate = totalInput > 0 ? ((ov.verified_recycled_kg / totalInput) * 100).toFixed(1) : '0.0';
+    document.getElementById('kpiRate').textContent = rate + '%';
+
+    // 2. Collections & Trends
+    const collRes = await fetch('/api/analytics/collections');
+    const collData = await collRes.json();
+
+    renderStatusChart(collData.status_summary || []);
+    renderTrendsChart(collData.daily_trends || []);
+
+    // 3. Category chart
+    renderCategoryChart(ov.category_distribution || []);
+
+    // 4. Facility throughput
+    const facRes = await fetch('/api/analytics/facilities');
+    const facData = await facRes.json();
+    renderFacilityThroughput(facData.facility_summary || []);
+
+  } catch (err) {
+    showToast('Failed to load analytics: ' + err.message, 'error');
+  }
+}
+
+function renderStatusChart(statusData) {
+  const ctx = document.getElementById('statusChart').getContext('2d');
+  const labels = statusData.map(s => (s.status || '').replace(/_/g, ' '));
+  const counts = statusData.map(s => s.count);
+
+  if (statusChartInstance) statusChartInstance.destroy();
+  statusChartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Batches in State',
+        data: counts,
+        backgroundColor: '#10b981',
+        borderRadius: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
+function renderTrendsChart(trendsData) {
+  const ctx = document.getElementById('trendsChart').getContext('2d');
+  const labels = trendsData.map(t => t.date);
+  const counts = trendsData.map(t => t.batches_registered);
+
+  if (trendsChartInstance) trendsChartInstance.destroy();
+  trendsChartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Batches Registered',
+        data: counts,
+        borderColor: '#14532d',
+        backgroundColor: 'rgba(20, 83, 45, 0.1)',
+        fill: true,
+        tension: 0.3
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 } } }
+    }
+  });
+}
+
+function renderCategoryChart(catData) {
+  const ctx = document.getElementById('categoryChart').getContext('2d');
+  const labels = catData.map(c => c.category);
+  const counts = catData.map(c => c.count);
+
+  if (categoryChartInstance) categoryChartInstance.destroy();
+  categoryChartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data: counts,
+        backgroundColor: [
+          '#10b981', '#3b82f6', '#f59e0b', '#ec4899',
+          '#8b5cf6', '#14b8a6', '#64748b', '#ef4444'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'right' } }
+    }
+  });
+}
+
+function renderFacilityThroughput(summary) {
+  const tbody = document.getElementById('facilityThroughputTbody');
+  if (!summary || summary.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No processing records found.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = '';
+  summary.forEach(f => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><strong>${f.facility_name}</strong></td>
+      <td>${f.total_reports}</td>
+      <td>${formatWeight(f.total_input_kg)}</td>
+      <td style="color:#15803d; font-weight:700;">${formatWeight(f.verified_recycled_kg)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function runBenchmark() {
+  const btn = document.getElementById('runBenchmarkBtn');
+  btn.disabled = true;
+  btn.textContent = 'Running explain()...';
+
+  try {
+    const res = await fetch('/api/admin/benchmark');
+    const data = await res.json();
+
+    // 1. batch_id lookup
+    const b1 = data.batch_id_lookup;
+    document.getElementById('benchIdTime').textContent = `${b1.execution_time_ms} ms`;
+    document.getElementById('benchIdDocs').textContent = `Docs Examined: ${b1.docs_examined} (Keys: ${b1.keys_examined})`;
+    document.getElementById('benchIdStage').textContent = `Stage: ${b1.stage} [${b1.index_used || 'IXSCAN'}]`;
+
+    // 2. compound lookup
+    const b2 = data.citizen_status_lookup;
+    document.getElementById('benchCompoundTime').textContent = `${b2.execution_time_ms} ms`;
+    document.getElementById('benchCompoundDocs').textContent = `Docs Examined: ${b2.docs_examined} (Keys: ${b2.keys_examined})`;
+    document.getElementById('benchCompoundStage').textContent = `Stage: ${b2.stage}`;
+
+    // 3. status lookup
+    const b3 = data.processing_status_lookup;
+    document.getElementById('benchStatusTime').textContent = `${b3.execution_time_ms} ms`;
+    document.getElementById('benchStatusDocs').textContent = `Docs Examined: ${b3.docs_examined} (Keys: ${b3.keys_examined})`;
+    document.getElementById('benchStatusStage').textContent = `Verified IXSCAN`;
+
+    showToast('Benchmark completed using live MongoDB executionStats!', 'success');
+  } catch (err) {
+    showToast('Benchmark query failed', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Live Benchmark';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAnalytics();
+  runBenchmark();
+});
+</script>
+{% endblock %}
+

@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}My Waste Batches{% endblock %}
+{% block nav_batches %}active{% endblock %}
+{% block page_title %}My Waste Batches{% endblock %}
+
+{% block top_actions %}
+<a href="/citizen/new-batch" class="btn btn-primary btn-sm">+ New Request</a>
+{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div style="display:flex; gap:1rem; align-items:center;">
+      <h3 class="card-title">All Waste Requests</h3>
+      <select id="statusFilter" class="form-select" style="width:180px; padding:0.4rem 0.6rem;">
+        <option value="">All Statuses</option>
+        <option value="registered">Registered</option>
+        <option value="collected">Collected</option>
+        <option value="in_transit">In Transit</option>
+        <option value="received">Received</option>
+        <option value="processing">Processing</option>
+        <option value="verification_pending">Pending Review</option>
+        <option value="verified_recycled">Verified Recycled</option>
+      </select>
+    </div>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Batch ID</th>
+          <th>Category</th>
+          <th>Declared Weight</th>
+          <th>Status</th>
+          <th>Created</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="batchesList">
+        <tr><td colspan="6" style="text-align:center; padding:2rem;">Loading...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadBatches() {
+  const status = document.getElementById('statusFilter').value;
+  const url = status ? `/api/batches?status=${status}` : '/api/batches';
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const tbody = document.getElementById('batchesList');
+
+    if (!data.batches || data.batches.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">No batches found for this filter.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    data.batches.forEach(b => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><a href="/batch/${b.batch_id}" style="font-family:monospace; font-weight:700;">${b.batch_id}</a></td>
+        <td style="text-transform:capitalize;">${b.waste_category}</td>
+        <td>${formatWeight(b.declared_weight_kg)}</td>
+        <td><span class="status-badge status-${b.current_status}">${b.current_status.replace(/_/g, ' ')}</span></td>
+        <td>${formatDate(b.created_at)}</td>
+        <td>
+          <a href="/track/${b.batch_id}" target="_blank" class="btn btn-outline btn-sm">Public QR</a>
+          <a href="/batch/${b.batch_id}" class="btn btn-ghost btn-sm">Timeline</a>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+  } catch (err) {
+    showToast('Failed to load batches', 'error');
+  }
+}
+
+document.getElementById('statusFilter').addEventListener('change', loadBatches);
+document.addEventListener('DOMContentLoaded', loadBatches);
+</script>
+{% endblock %}
+

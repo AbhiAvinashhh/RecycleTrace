@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block title %}System Audit Logs{% endblock %}
+{% block nav_audit %}active{% endblock %}
+{% block page_title %}Immutable System Audit Ledger{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Audit Log Entries</h3>
+      <p style="font-size:0.8125rem; color:#64748b; margin-top:0.25rem;">
+        Complete chronological ledger of security events, status transitions, and administrative reviews.
+      </p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <select id="entityFilter" class="form-select" style="width:160px; padding:0.4rem 0.6rem;">
+        <option value="">All Entities</option>
+        <option value="waste_batch">Waste Batch</option>
+        <option value="processing_record">Processing Record</option>
+        <option value="facility">Facility</option>
+        <option value="user">User</option>
+      </select>
+      <button class="btn btn-outline btn-sm" onclick="loadAuditLogs()">🔄 Refresh</button>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Audit ID</th>
+          <th>Timestamp (UTC)</th>
+          <th>Action</th>
+          <th>Entity</th>
+          <th>Actor ID</th>
+          <th>Metadata Details</th>
+        </tr>
+      </thead>
+      <tbody id="auditTbody">
+        <tr><td colspan="6" style="text-align:center; padding:2rem;">Loading audit logs...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAuditLogs() {
+  const entity = document.getElementById('entityFilter').value;
+  const url = entity ? `/api/admin/audit-logs?entity_type=${entity}` : '/api/admin/audit-logs';
+
+  try {
+    const res = await fetch(url);
+    const data = await res.json();
+    const tbody = document.getElementById('auditTbody');
+    const logs = data.logs || [];
+
+    if (logs.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">No audit logs recorded for this criteria.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    logs.forEach(l => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td style="font-family:monospace; font-size:0.75rem; font-weight:700;">${l.audit_id}</td>
+        <td style="font-size:0.8125rem;">${formatDate(l.timestamp)}</td>
+        <td><strong style="color:var(--primary);">${l.action}</strong></td>
+        <td><span style="font-size:0.8125rem; background:#f1f5f9; padding:0.2rem 0.4rem; border-radius:4px;">${l.entity_type}:${l.entity_id}</span></td>
+        <td style="font-family:monospace; font-size:0.75rem;">${l.actor_id}</td>
+        <td style="font-size:0.75rem; font-family:monospace; max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title='${JSON.stringify(l.details || {})}'>
+          ${JSON.stringify(l.details || {})}
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    showToast('Failed to load audit logs', 'error');
+  }
+}
+
+document.getElementById('entityFilter').addEventListener('change', loadAuditLogs);
+document.addEventListener('DOMContentLoaded', loadAuditLogs);
+</script>
+{% endblock %}
+

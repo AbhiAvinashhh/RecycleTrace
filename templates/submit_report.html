@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}Submit Processing Report{% endblock %}
+{% block page_title %}Facility Processing Report{% endblock %}
+
+{% block content %}
+<div style="max-width: 750px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">Submit Recycling Processing Data</h3>
+      <span class="role-badge role-facility_operator">Facility Operator</span>
+    </div>
+
+    <form id="processingReportForm" novalidate>
+      <div class="form-group">
+        <label for="batch_id">Batch ID *</label>
+        <input type="text" id="batch_id" name="batch_id" class="form-input" placeholder="WT-2026-1001" required />
+      </div>
+
+      <div class="card" style="background:#f8fafc; border:1px solid #e2e8f0; margin-bottom:1.25rem;">
+        <h4 style="font-size:0.875rem; margin-bottom:0.75rem; color:#334155;">Weight Reconciliation Balancer</h4>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="input_weight_kg">1. Input Weight Processed (kg) *</label>
+            <input type="number" step="0.01" min="0.01" id="input_weight_kg" class="form-input" placeholder="e.g. 50.00" required />
+          </div>
+          <div class="form-group">
+            <label for="recycled_output_kg">2. Recycled Output (kg) *</label>
+            <input type="number" step="0.01" min="0" id="recycled_output_kg" class="form-input" placeholder="e.g. 42.50" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="rejected_weight_kg">3. Contaminated / Rejected (kg) *</label>
+            <input type="number" step="0.01" min="0" id="rejected_weight_kg" class="form-input" placeholder="e.g. 4.50" value="0" required />
+          </div>
+          <div class="form-group">
+            <label for="residual_weight_kg">4. Non-recyclable Residual (kg) *</label>
+            <input type="number" step="0.01" min="0" id="residual_weight_kg" class="form-input" placeholder="e.g. 3.00" value="0" required />
+          </div>
+        </div>
+
+        <!-- Live Reconciliation Indicator -->
+        <div id="reconciliationBox" style="padding:0.75rem 1rem; border-radius:var(--radius-sm); font-size:0.8125rem; font-weight:600; display:flex; justify-content:space-between; align-items:center; background:#e2e8f0; color:#334155;">
+          <span>Reconciliation Delta:</span>
+          <span id="reconDelta">0.00 kg (0.0%)</span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Processing Method & Equipment Notes</label>
+        <textarea id="notes" class="form-textarea" placeholder="e.g. Optical sorting line 3, shredded to 5mm flakes, hot-wash cycle at 85°C."></textarea>
+      </div>
+
+      <div id="submitError" class="form-error-msg hidden"></div>
+
+      <button type="submit" class="btn btn-primary btn-full" id="submitReportBtn">
+        Submit Processing Report for Audit Review
+      </button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-fill from query string
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('batch_id')) {
+  document.getElementById('batch_id').value = urlParams.get('batch_id');
+}
+
+function updateReconciliation() {
+  const input = parseFloat(document.getElementById('input_weight_kg').value) || 0;
+  const recycled = parseFloat(document.getElementById('recycled_output_kg').value) || 0;
+  const rejected = parseFloat(document.getElementById('rejected_weight_kg').value) || 0;
+  const residual = parseFloat(document.getElementById('residual_weight_kg').value) || 0;
+
+  const totalOutput = recycled + rejected + residual;
+  const delta = Math.abs(totalOutput - input);
+  const pct = input > 0 ? (delta / input) * 100 : 0;
+
+  const box = document.getElementById('reconciliationBox');
+  const deltaEl = document.getElementById('reconDelta');
+
+  if (input === 0) {
+    box.style.background = '#e2e8f0';
+    box.style.color = '#334155';
+    deltaEl.textContent = 'Enter weights to calculate';
+    return;
+  }
+
+  if (pct <= 5.0) {
+    box.style.background = '#dcfce7';
+    box.style.color = '#166534';
+    deltaEl.textContent = `Balanced within tolerance: ${delta.toFixed(2)} kg (${pct.toFixed(1)}%)`;
+  } else {
+    box.style.background = '#fee2e2';
+    box.style.color = '#991b1b';
+    deltaEl.textContent = `⚠️ Flagged Discrepancy: ${delta.toFixed(2)} kg (${pct.toFixed(1)}%) exceeds 5% tolerance`;
+  }
+}
+
+['input_weight_kg', 'recycled_output_kg', 'rejected_weight_kg', 'residual_weight_kg'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateReconciliation);
+});
+
+document.getElementById('processingReportForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('submitReportBtn');
+  const errBox = document.getElementById('submitError');
+  errBox.classList.add('hidden');
+  btn.disabled = true;
+
+  const batchId = document.getElementById('batch_id').value.trim();
+  const payload = {
+    input_weight_kg: parseFloat(document.getElementById('input_weight_kg').value),
+    recycled_output_kg: parseFloat(document.getElementById('recycled_output_kg').value),
+    rejected_weight_kg: parseFloat(document.getElementById('rejected_weight_kg').value),
+    residual_weight_kg: parseFloat(document.getElementById('residual_weight_kg').value),
+    notes: document.getElementById('notes').value.trim()
+  };
+
+  try {
+    const res = await fetch(`/api/batches/${batchId}/processing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Processing report submitted for review!', 'success');
+      setTimeout(() => {
+        window.location.href = '/facility';
+      }, 700);
+    } else {
+      errBox.textContent = data.error || 'Failed to submit report.';
+      errBox.classList.remove('hidden');
+    }
+  } catch (err) {
+    errBox.textContent = 'Network error. Please try again.';
+    errBox.classList.remove('hidden');
+  } finally {
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}
+

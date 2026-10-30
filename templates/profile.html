@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block title %}User Profile{% endblock %}
+{% block nav_profile %}active{% endblock %}
+{% block page_title %}Profile & Account Settings{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+  <div class="card">
+    <div class="card-header">
+      <h3 class="card-title">User Account Details</h3>
+      <span class="role-badge role-{{ current_user_role }}">{{ current_user_role | replace('_', ' ') | title }}</span>
+    </div>
+
+    <form id="profileForm">
+      <div class="form-group">
+        <label for="profName">Full Name</label>
+        <input type="text" id="profName" class="form-input" required />
+      </div>
+
+      <div class="form-group">
+        <label for="profEmail">Email Address</label>
+        <input type="email" id="profEmail" class="form-input" readonly disabled style="background:#f1f5f9; cursor:not-allowed;" />
+      </div>
+
+      <div class="form-group">
+        <label for="profPhone">Phone / Contact</label>
+        <input type="text" id="profPhone" class="form-input" placeholder="+1 (555) 000-0000" />
+      </div>
+
+      <div class="form-group">
+        <label>Account Role</label>
+        <input type="text" id="profRole" class="form-input" readonly disabled style="background:#f1f5f9; text-transform:capitalize;" />
+      </div>
+
+      <button type="submit" class="btn btn-primary" id="saveProfBtn">Save Changes</button>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadProfile() {
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const u = await res.json();
+      document.getElementById('profName').value = u.name || '';
+      document.getElementById('profEmail').value = u.email || '';
+      document.getElementById('profPhone').value = u.phone || '';
+      document.getElementById('profRole').value = (u.role || '').replace(/_/g, ' ');
+    }
+  } catch (err) {
+    showToast('Failed to load profile', 'error');
+  }
+}
+
+document.getElementById('profileForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('profName').value.trim();
+  const phone = document.getElementById('profPhone').value.trim();
+
+  try {
+    const res = await fetch('/api/auth/profile', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, phone })
+    });
+    if (res.ok) {
+      showToast('Profile updated!', 'success');
+      setTimeout(() => location.reload(), 500);
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Update failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', loadProfile);
+</script>
+{% endblock %}
+

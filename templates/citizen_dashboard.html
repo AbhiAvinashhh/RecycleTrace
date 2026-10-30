@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}Citizen Dashboard{% endblock %}
+{% block nav_dashboard %}active{% endblock %}
+{% block page_title %}Citizen Overview{% endblock %}
+
+{% block top_actions %}
+<a href="/citizen/new-batch" class="btn btn-primary btn-sm">+ Register Waste</a>
+{% endblock %}
+
+{% block content %}
+<div class="grid-kpi">
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Registered Batches</span>
+      <span class="kpi-icon">📦</span>
+    </div>
+    <div class="kpi-value" id="kpiTotal">0</div>
+    <span class="kpi-subtext">Total waste requests</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Verified Recycled</span>
+      <span class="kpi-icon">✅</span>
+    </div>
+    <div class="kpi-value" id="kpiVerified">0</div>
+    <span class="kpi-subtext">Independently verified</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">In Progress</span>
+      <span class="kpi-icon">🔄</span>
+    </div>
+    <div class="kpi-value" id="kpiInProgress">0</div>
+    <span class="kpi-subtext">Collected or in transit</span>
+  </div>
+  <div class="kpi-card">
+    <div class="kpi-header">
+      <span class="kpi-label">Total Weight</span>
+      <span class="kpi-icon">⚖️</span>
+    </div>
+    <div class="kpi-value" id="kpiWeight">0 kg</div>
+    <span class="kpi-subtext">Declared quantity</span>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">Recent Waste Batches</h3>
+    <a href="/citizen/batches" class="btn btn-outline btn-sm">View All</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table" id="recentTable">
+      <thead>
+        <tr>
+          <th>Batch ID</th>
+          <th>Category</th>
+          <th>Weight</th>
+          <th>Status</th>
+          <th>Submitted</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="batchesTbody">
+        <tr><td colspan="6" style="text-align:center; color:#94a3b8; padding: 2rem;">Loading batches...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadCitizenBatches() {
+  try {
+    const res = await fetch('/api/batches');
+    const data = await res.json();
+    const batches = data.batches || [];
+
+    let total = batches.length;
+    let verified = 0;
+    let inProgress = 0;
+    let totalWeight = 0;
+
+    const tbody = document.getElementById('batchesTbody');
+    if (batches.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;">No waste batches found. Click "+ Register Waste" to start!</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    batches.forEach(b => {
+      totalWeight += b.declared_weight_kg || 0;
+      if (b.current_status === 'verified_recycled') verified++;
+      else if (['collected', 'in_transit', 'received', 'processing'].includes(b.current_status)) inProgress++;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><a href="/batch/${b.batch_id}" style="font-family:monospace; font-weight:700;">${b.batch_id}</a></td>
+        <td style="text-transform:capitalize;">${b.waste_category}</td>
+        <td>${formatWeight(b.declared_weight_kg)}</td>
+        <td><span class="status-badge status-${b.current_status}">${b.current_status.replace(/_/g, ' ')}</span></td>
+        <td>${formatDate(b.created_at)}</td>
+        <td>
+          <a href="/track/${b.batch_id}" target="_blank" class="btn btn-outline btn-sm">Track QR</a>
+          <a href="/batch/${b.batch_id}" class="btn btn-ghost btn-sm">Details</a>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiVerified').textContent = verified;
+    document.getElementById('kpiInProgress').textContent = inProgress;
+    document.getElementById('kpiWeight').textContent = totalWeight.toFixed(1) + ' kg';
+
+  } catch (err) {
+    showToast('Failed to load batches: ' + err.message, 'error');
+  }
+}
+document.addEventListener('DOMContentLoaded', loadCitizenBatches);
+</script>
+{% endblock %}
+

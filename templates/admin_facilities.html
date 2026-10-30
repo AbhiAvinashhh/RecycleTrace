@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Facility Verification{% endblock %}
+{% block nav_admin_fac %}active{% endblock %}
+{% block page_title %}Facility Verification & Management{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <h3 class="card-title">All Registered Facilities</h3>
+    <button class="btn btn-outline btn-sm" onclick="loadAdminFacilities()">🔄 Refresh</button>
+  </div>
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Facility ID</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Accepted Categories</th>
+          <th>Public Address</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="facilitiesTbody">
+        <tr><td colspan="7" style="text-align:center; padding:2rem;">Loading facilities...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function loadAdminFacilities() {
+  try {
+    const res = await fetch('/api/facilities');
+    const data = await res.json();
+    const tbody = document.getElementById('facilitiesTbody');
+    const facilities = data.facilities || [];
+
+    if (facilities.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:2rem;">No facilities registered.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    facilities.forEach(f => {
+      const tr = document.createElement('tr');
+      let actionBtns = '';
+      if (f.verification_status === 'pending') {
+        actionBtns = `
+          <button class="btn btn-primary btn-sm" onclick="setFacilityStatus('${f.facility_id}', 'verified')">Approve</button>
+          <button class="btn btn-danger btn-sm" onclick="setFacilityStatus('${f.facility_id}', 'rejected')">Reject</button>
+        `;
+      } else if (f.verification_status === 'verified') {
+        actionBtns = `
+          <button class="btn btn-outline btn-sm" onclick="setFacilityStatus('${f.facility_id}', 'suspended')">Suspend</button>
+        `;
+      } else {
+        actionBtns = `
+          <button class="btn btn-primary btn-sm" onclick="setFacilityStatus('${f.facility_id}', 'verified')">Re-Approve</button>
+        `;
+      }
+
+      tr.innerHTML = `
+        <td style="font-family:monospace; font-weight:700;">${f.facility_id}</td>
+        <td><strong>${f.name}</strong></td>
+        <td style="text-transform:capitalize;">${(f.facility_type || '').replace(/_/g, ' ')}</td>
+        <td style="font-size:0.8125rem;">${(f.accepted_categories || []).join(', ')}</td>
+        <td style="font-size:0.8125rem;">${f.address_public || '—'}</td>
+        <td><span class="status-badge status-${f.verification_status}">${f.verification_status}</span></td>
+        <td style="display:flex; gap:0.35rem;">${actionBtns}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    showToast('Failed to load facilities', 'error');
+  }
+}
+
+async function setFacilityStatus(facilityId, status) {
+  const notes = prompt(`Enter reason/notes for setting status to "${status}":`) || 'Admin action';
+  try {
+    const res = await fetch(`/api/facilities/${facilityId}/verification`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ verification_status: status, notes })
+    });
+    if (res.ok) {
+      showToast(`Facility ${status}!`, 'success');
+      loadAdminFacilities();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Update failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadAdminFacilities);
+</script>
+{% endblock %}
+

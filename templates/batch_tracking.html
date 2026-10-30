@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Track Waste Batch {{ batch_id }} — RecycleTrace</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}" />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>♻️</text></svg>" />
+</head>
+<body style="background-color: #f8fafc;">
+
+<nav class="landing-nav">
+  <div class="nav-container">
+    <a href="/" class="nav-brand">
+      <span class="logo-icon">♻</span>
+      <span class="logo-text">RecycleTrace</span>
+    </a>
+    <div>
+      <span style="font-size:0.8125rem; color:#64748b; font-weight:600;">PUBLIC VERIFICATION AUDIT</span>
+    </div>
+  </div>
+</nav>
+
+<div class="container" style="max-width: 800px; padding-top: 2rem;">
+  <div id="loading" style="text-align: center; padding: 4rem;">
+    <div style="font-size: 1.5rem; margin-bottom: 1rem;">🔍 Fetching chain-of-custody data...</div>
+    <p style="color: #64748b;">Verifying database records on MongoDB...</p>
+  </div>
+
+  <div id="notFound" class="hidden" style="text-align: center; padding: 4rem;">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+    <h2>Batch Not Found</h2>
+    <p style="color: #64748b; margin-top: 0.5rem;">Batch ID "{{ batch_id }}" is not registered in the system.</p>
+    <a href="/" class="btn btn-primary" style="margin-top: 1.5rem;">Back to Home</a>
+  </div>
+
+  <div id="content" class="hidden">
+    <!-- Header card -->
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <span style="font-size:0.75rem; font-weight:700; color:#64748b; letter-spacing:0.05em; text-transform:uppercase;">WASTE CHAIN OF CUSTODY</span>
+          <h1 style="font-size:1.75rem; font-family:monospace; margin-top:0.25rem;" id="trackBatchId">{{ batch_id }}</h1>
+        </div>
+        <div id="trackStatusBadge"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #e2e8f0;">
+        <div>
+          <span style="font-size:0.75rem; color:#64748b; display:block;">Category</span>
+          <strong id="trackCategory" style="text-transform:capitalize; font-size:1.1rem;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#64748b; display:block;">Declared Weight</span>
+          <strong id="trackDeclaredWeight" style="font-size:1.1rem;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#64748b; display:block;">Registered Date</span>
+          <strong id="trackCreated" style="font-size:0.95rem;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#64748b; display:block;">Receiving Facility</span>
+          <strong id="trackFacility" style="font-size:0.95rem;">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verified Recycling Breakdown Card (if verified) -->
+    <div class="card hidden" id="verificationCard" style="border-left: 4px solid var(--emerald);">
+      <div class="card-header">
+        <h3 class="card-title" style="color:var(--primary);">
+          <span>✅</span> Independent Recycling Verification Audit
+        </h3>
+        <span class="status-badge status-verified">Auditor Approved</span>
+      </div>
+      <p style="font-size:0.875rem; color:#475569; margin-bottom:1.25rem;">
+        An authorized auditor has reviewed the facility processing logs and photographic evidence.
+        Weights have been reconciled within acceptable limits.
+      </p>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:1rem; background:#f0fdf4; padding:1.25rem; border-radius:var(--radius-md);">
+        <div>
+          <span style="font-size:0.75rem; color:#166534; font-weight:600; display:block;">Input Processed</span>
+          <strong id="auditInput" style="font-size:1.3rem; color:#14532d;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#166534; font-weight:600; display:block;">Verified Recycled</span>
+          <strong id="auditRecycled" style="font-size:1.3rem; color:#15803d;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#166534; font-weight:600; display:block;">Rejected</span>
+          <strong id="auditRejected" style="font-size:1.3rem; color:#991b1b;">—</strong>
+        </div>
+        <div>
+          <span style="font-size:0.75rem; color:#166534; font-weight:600; display:block;">Residual</span>
+          <strong id="auditResidual" style="font-size:1.3rem; color:#854d0e;">—</strong>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Chronological Chain of Custody</h3>
+      </div>
+      <div class="timeline" id="trackingTimeline"></div>
+    </div>
+
+    <!-- Notice -->
+    <div style="text-align:center; padding: 2rem 0; color:#64748b; font-size:0.8125rem;">
+      <p>🛡️ Public transparency view. Private addresses and personal contact data are redacted.</p>
+      <p style="margin-top:0.25rem;">Powered by RecycleTrace Immutable Event Ledger · MongoDB Community Server</p>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+<script>
+const batchId = "{{ batch_id }}";
+
+async function loadPublicTracking() {
+  try {
+    const res = await fetch(`/api/public/track/${batchId}`);
+    if (!res.ok) {
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('notFound').classList.remove('hidden');
+      return;
+    }
+    const data = await res.json();
+
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('content').classList.remove('hidden');
+
+    document.getElementById('trackBatchId').textContent = data.batch_id;
+    document.getElementById('trackCategory').textContent = data.waste_category;
+    document.getElementById('trackDeclaredWeight').textContent = formatWeight(data.declared_weight_kg);
+    document.getElementById('trackCreated').textContent = formatDate(data.created_at);
+
+    // Facility
+    if (data.facility) {
+      document.getElementById('trackFacility').textContent = `${data.facility.name} (${data.facility.verification_status})`;
+    } else {
+      document.getElementById('trackFacility').textContent = 'Pending Facility Assignment';
+    }
+
+    // Status badge
+    const badgeEl = document.getElementById('trackStatusBadge');
+    badgeEl.innerHTML = `<span class="status-badge status-${data.current_status}" style="font-size:0.9rem; padding:0.4rem 0.85rem;">${data.current_status.replace(/_/g, ' ')}</span>`;
+
+    // Verification card
+    if (data.processing && data.processing.verification_status === 'approved') {
+      document.getElementById('verificationCard').classList.remove('hidden');
+      document.getElementById('auditInput').textContent = formatWeight(data.processing.input_weight_kg);
+      document.getElementById('auditRecycled').textContent = formatWeight(data.processing.recycled_output_kg);
+      document.getElementById('auditRejected').textContent = formatWeight(data.processing.rejected_weight_kg);
+      document.getElementById('auditResidual').textContent = formatWeight(data.processing.residual_weight_kg);
+    }
+
+    // Timeline
+    const timelineEl = document.getElementById('trackingTimeline');
+    timelineEl.innerHTML = '';
+    const events = data.timeline || [];
+
+    events.forEach(evt => {
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      const isVerified = evt.event_type === 'verification_approved';
+      item.innerHTML = `
+        <div class="timeline-marker ${isVerified ? 'verified' : ''}">
+          ${isVerified ? '✓' : '•'}
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <span class="timeline-title" style="text-transform:capitalize;">${evt.event_type.replace(/_/g, ' ')}</span>
+            <span class="timeline-date">${formatDate(evt.timestamp)}</span>
+          </div>
+          <div style="font-size:0.8125rem; color:#64748b; margin-top:0.25rem;">
+            Actor: <strong>${(evt.actor_role || '').replace(/_/g, ' ')}</strong>
+            ${evt.weight_kg ? ` · Recorded Weight: <strong>${formatWeight(evt.weight_kg)}</strong>` : ''}
+          </div>
+          ${evt.notes ? `<p style="font-size:0.85rem; margin-top:0.5rem; color:#334155;">${evt.notes}</p>` : ''}
+        </div>
+      `;
+      timelineEl.appendChild(item);
+    });
+
+  } catch (err) {
+    document.getElementById('loading').classList.add('hidden');
+    document.getElementById('notFound').classList.remove('hidden');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadPublicTracking);
+</script>
+</body>
+</html>
+

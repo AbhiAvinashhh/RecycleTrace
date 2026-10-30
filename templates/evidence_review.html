@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Evidence Review & Verification{% endblock %}
+{% block nav_evidence %}active{% endblock %}
+{% block page_title %}Recycling Evidence Review{% endblock %}
+
+{% block content %}
+<div class="card">
+  <div class="card-header">
+    <div>
+      <h3 class="card-title">Pending Processing Reports</h3>
+      <p style="font-size:0.8125rem; color:#64748b; margin-top:0.25rem;">
+        Validate mass balance reconciliation before granting "Verified Recycled" status.
+      </p>
+    </div>
+    <button class="btn btn-outline btn-sm" onclick="loadPendingReports()">🔄 Refresh</button>
+  </div>
+
+  <div class="table-responsive">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Report ID</th>
+          <th>Batch ID</th>
+          <th>Facility</th>
+          <th>Input</th>
+          <th>Output (Recycled)</th>
+          <th>Discrepancy</th>
+          <th>Submitted</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="pendingReportsTbody">
+        <tr><td colspan="8" style="text-align:center; padding:2rem;">Loading pending reports...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="hidden" style="position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); z-index:100; display:flex; align-items:center; justify-content:center;">
+  <div class="card" style="width:520px; max-width:92%;">
+    <div class="card-header">
+      <h3 class="card-title">Auditor Verification Decision</h3>
+      <button class="btn btn-ghost btn-sm" onclick="closeReviewModal()">✕</button>
+    </div>
+    <form id="reviewForm">
+      <input type="hidden" id="modalProcessingId" />
+      <div class="form-group">
+        <label>Report ID</label>
+        <input type="text" id="displayReportId" class="form-input" readonly disabled />
+      </div>
+
+      <div class="card" style="background:#f8fafc; border:1px solid #e2e8f0; font-size:0.85rem; margin-bottom:1rem;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+          <div>Input: <strong id="modalInput">—</strong></div>
+          <div>Recycled: <strong id="modalRecycled">—</strong></div>
+          <div>Rejected: <strong id="modalRejected">—</strong></div>
+          <div>Residual: <strong id="modalResidual">—</strong></div>
+        </div>
+        <div id="modalDiscrepancyText" style="font-weight:600; padding-top:0.5rem; border-top:1px solid #e2e8f0;"></div>
+      </div>
+
+      <div class="form-group">
+        <label for="reviewDecision">Decision *</label>
+        <select id="reviewDecision" class="form-select" required>
+          <option value="approved">✅ Approve — Mark as "Verified Recycled"</option>
+          <option value="rejected">❌ Reject — Invalidate Claim (Discrepancy / Fraud)</option>
+          <option value="correction_requested">📝 Request Corrections — Ask Facility for Details</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="reviewNotes">Auditor Verification Notes *</label>
+        <textarea id="reviewNotes" class="form-textarea" placeholder="State reason, scale receipts checked, or explain discrepancies..." required></textarea>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem;">
+        <button type="button" class="btn btn-outline btn-sm" onclick="closeReviewModal()">Cancel</button>
+        <button type="submit" class="btn btn-primary btn-sm">Confirm Decision</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentReports = [];
+
+async function loadPendingReports() {
+  try {
+    const res = await fetch('/api/processing/pending');
+    const data = await res.json();
+    currentReports = data.records || [];
+    const tbody = document.getElementById('pendingReportsTbody');
+
+    if (currentReports.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem; color:#166534;">🎉 No pending reports awaiting audit review. All caught up!</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = '';
+    currentReports.forEach(r => {
+      const tr = document.createElement('tr');
+      const isFlagged = r.discrepancy_flagged;
+      tr.innerHTML = `
+        <td style="font-family:monospace; font-weight:600;">${r.processing_id}</td>
+        <td><a href="/batch/${r.batch_id}" style="font-family:monospace; font-weight:700;">${r.batch_id}</a></td>
+        <td style="font-size:0.8125rem;">${r.facility_id}</td>
+        <td>${formatWeight(r.input_weight_kg)}</td>
+        <td>${formatWeight(r.recycled_output_kg)}</td>
+        <td>
+          <span style="font-weight:700; color:${isFlagged ? '#b91c1c' : '#166534'};">
+            ${r.discrepancy_pct}% ${isFlagged ? '⚠️' : '✓'}
+          </span>
+        </td>
+        <td>${formatDate(r.submitted_at)}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="openReviewModal('${r.processing_id}')">Review & Verify</button>
+        </td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (err) {
+    showToast('Failed to load pending reviews', 'error');
+  }
+}
+
+function openReviewModal(processingId) {
+  const r = currentReports.find(x => x.processing_id === processingId);
+  if (!r) return;
+
+  document.getElementById('modalProcessingId').value = r.processing_id;
+  document.getElementById('displayReportId').value = `${r.processing_id} (Batch: ${r.batch_id})`;
+  document.getElementById('modalInput').textContent = formatWeight(r.input_weight_kg);
+  document.getElementById('modalRecycled').textContent = formatWeight(r.recycled_output_kg);
+  document.getElementById('modalRejected').textContent = formatWeight(r.rejected_weight_kg);
+  document.getElementById('modalResidual').textContent = formatWeight(r.residual_weight_kg);
+
+  const discEl = document.getElementById('modalDiscrepancyText');
+  if (r.discrepancy_flagged) {
+    discEl.innerHTML = `<span style="color:#b91c1c;">⚠️ Discrepancy ${r.discrepancy_pct}% exceeds 5% threshold! Mass balance does not reconcile.</span>`;
+  } else {
+    discEl.innerHTML = `<span style="color:#166534;">✓ Mass balance delta ${r.discrepancy_pct}% is within acceptable 5% tolerance.</span>`;
+  }
+
+  const m = document.getElementById('reviewModal');
+  m.classList.remove('hidden');
+  m.style.display = 'flex';
+}
+
+function closeReviewModal() {
+  const m = document.getElementById('reviewModal');
+  m.classList.add('hidden');
+  m.style.display = 'none';
+}
+
+document.getElementById('reviewForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const processingId = document.getElementById('modalProcessingId').value;
+  const decision = document.getElementById('reviewDecision').value;
+  const review_notes = document.getElementById('reviewNotes').value.trim();
+
+  try {
+    const res = await fetch(`/api/processing/${processingId}/review`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ decision, review_notes })
+    });
+    if (res.ok) {
+      showToast(`Review decision recorded: ${decision}`, 'success');
+      closeReviewModal();
+      loadPendingReports();
+    } else {
+      const err = await res.json();
+      showToast(err.error || 'Review submission failed', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', loadPendingReports);
+</script>
+{% endblock %}
+

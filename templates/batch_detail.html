@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Batch {{ batch_id }} Details{% endblock %}
+{% block page_title %}Batch {{ batch_id }}{% endblock %}
+
+{% block top_actions %}
+<a href="/api/batches/{{ batch_id }}/qr" class="btn btn-outline btn-sm" download>⬇ Download QR</a>
+<a href="/track/{{ batch_id }}" target="_blank" class="btn btn-primary btn-sm">Public View ↗</a>
+{% endblock %}
+
+{% block content %}
+<div style="display:grid; grid-template-columns: 2fr 1fr; gap:1.5rem; align-items:start;">
+  <!-- Left column: Details & Timeline -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <div>
+          <span style="font-size:0.75rem; color:#64748b; font-weight:700;">BATCH METADATA</span>
+          <h2 style="font-family:monospace; margin-top:0.25rem;">{{ batch_id }}</h2>
+        </div>
+        <div id="statusBadge"></div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem; font-size:0.875rem;">
+        <div>
+          <span style="color:#64748b; font-size:0.75rem; display:block;">Category</span>
+          <strong id="batchCategory" style="text-transform:capitalize;">—</strong>
+        </div>
+        <div>
+          <span style="color:#64748b; font-size:0.75rem; display:block;">Declared Weight</span>
+          <strong id="batchDeclaredWeight">—</strong>
+        </div>
+        <div>
+          <span style="color:#64748b; font-size:0.75rem; display:block;">Collected Weight</span>
+          <strong id="batchCollectedWeight">—</strong>
+        </div>
+        <div>
+          <span style="color:#64748b; font-size:0.75rem; display:block;">Pickup Address</span>
+          <span id="batchAddress">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Timeline Card -->
+    <div class="card">
+      <div class="card-header">
+        <h3 class="card-title">Event Ledger & Chain of Custody</h3>
+      </div>
+      <div class="timeline" id="eventTimeline">
+        <p style="text-align:center; padding:1.5rem; color:#94a3b8;">Loading events...</p>
+      </div>
+    </div>
+
+    <!-- Report issue card -->
+    <div class="card">
+      <div class="card-header">
+        <h4 class="card-title">Report Issue or Suspicious Change</h4>
+      </div>
+      <p style="font-size:0.8125rem; color:#64748b; margin-bottom:1rem;">
+        If you suspect contamination, skipped stages, or unauthorized weight modifications, report it directly into the audit log.
+      </p>
+      <form id="reportIssueForm">
+        <div class="form-group">
+          <textarea id="issueReason" class="form-textarea" placeholder="Describe the discrepancy or problem..." required></textarea>
+        </div>
+        <button type="submit" class="btn btn-danger btn-sm">Submit Issue Report</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Right column: QR code card -->
+  <div>
+    <div class="card" style="text-align:center;">
+      <h3 class="card-title" style="justify-content:center; margin-bottom:1rem;">Batch Tracking QR</h3>
+      <div style="background:white; padding:1rem; border:1px solid #e2e8f0; border-radius:var(--radius-md); display:inline-block; margin-bottom:1rem;">
+        <img id="qrImage" src="/api/batches/{{ batch_id }}/qr" alt="QR Code" style="width:200px; height:200px; display:block;" />
+      </div>
+      <p style="font-size:0.8125rem; color:#64748b; margin-bottom:1rem;">
+        Scan this QR code with any mobile device to view public verification records.
+      </p>
+      <a href="/api/batches/{{ batch_id }}/qr" class="btn btn-outline btn-full" download>Download PNG</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const batchId = "{{ batch_id }}";
+
+async function loadBatchDetail() {
+  try {
+    const res = await fetch(`/api/batches/${batchId}`);
+    if (!res.ok) {
+      showToast('Batch not found or access denied', 'error');
+      return;
+    }
+    const b = await res.json();
+
+    document.getElementById('batchCategory').textContent = b.waste_category;
+    document.getElementById('batchDeclaredWeight').textContent = formatWeight(b.declared_weight_kg);
+    document.getElementById('batchCollectedWeight').textContent = formatWeight(b.collected_weight_kg);
+    document.getElementById('batchAddress').textContent = b.pickup_address || 'Not specified';
+
+    document.getElementById('statusBadge').innerHTML = `
+      <span class="status-badge status-${b.current_status}">${b.current_status.replace(/_/g, ' ')}</span>
+    `;
+
+    // Load timeline
+    const tRes = await fetch(`/api/batches/${batchId}/timeline`);
+    const tData = await tRes.json();
+    const timelineEl = document.getElementById('eventTimeline');
+    timelineEl.innerHTML = '';
+
+    (tData.timeline || []).forEach(evt => {
+      const isVerified = evt.event_type === 'verification_approved';
+      const item = document.createElement('div');
+      item.className = 'timeline-item';
+      item.innerHTML = `
+        <div class="timeline-marker ${isVerified ? 'verified' : ''}">
+          ${isVerified ? '✓' : '•'}
+        </div>
+        <div class="timeline-content">
+          <div class="timeline-header">
+            <span class="timeline-title" style="text-transform:capitalize;">${evt.event_type.replace(/_/g, ' ')}</span>
+            <span class="timeline-date">${formatDate(evt.timestamp)}</span>
+          </div>
+          <div style="font-size:0.8125rem; color:#64748b;">
+            Actor: <strong>${evt.actor_role}</strong>
+            ${evt.weight_kg ? ` · Weight: <strong>${formatWeight(evt.weight_kg)}</strong>` : ''}
+          </div>
+          ${evt.notes ? `<p style="font-size:0.85rem; margin-top:0.35rem;">${evt.notes}</p>` : ''}
+        </div>
+      `;
+      timelineEl.appendChild(item);
+    });
+
+  } catch (err) {
+    showToast('Failed to load batch: ' + err.message, 'error');
+  }
+}
+
+document.getElementById('reportIssueForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const reason = document.getElementById('issueReason').value.trim();
+  if (!reason) return;
+
+  try {
+    const res = await fetch(`/api/batches/${batchId}/report`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reason })
+    });
+    if (res.ok) {
+      showToast('Issue recorded in audit trail.', 'success');
+      document.getElementById('issueReason').value = '';
+      loadBatchDetail();
+    } else {
+      const d = await res.json();
+      showToast(d.error || 'Failed to submit report', 'error');
+    }
+  } catch (err) {
+    showToast('Network error', 'error');
+  }
+});
+
+document.addEventListener('DOMContentLoaded', loadBatchDetail);
+</script>
+{% endblock %}
+

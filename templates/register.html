@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card auth-card-wide">
+    <div class="auth-logo">
+      <span class="logo-icon">♻</span>
+      <span class="logo-text">RecycleTrace</span>
+    </div>
+    <h1 class="auth-title">Create your account</h1>
+    <p class="auth-subtitle">Join thousands tracking their waste responsibly</p>
+
+    <form id="registerForm" class="auth-form" novalidate>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input type="text" id="name" name="name" class="form-input" placeholder="Jane Smith" required autocomplete="name" />
+          <span class="field-error" id="nameError"></span>
+        </div>
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" name="email" class="form-input" placeholder="jane@example.com" required autocomplete="email" />
+          <span class="field-error" id="emailError"></span>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="role">I am a...</label>
+        <select id="role" name="role" class="form-select" required>
+          <option value="citizen">🏠 Citizen — I want to track my waste</option>
+          <option value="collector">🚛 Waste Collector — I collect and transport waste</option>
+          <option value="facility_operator">🏭 Facility Operator — I process waste at a facility</option>
+        </select>
+        <span class="field-error" id="roleError"></span>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <div class="input-wrapper">
+          <input type="password" id="password" name="password" class="form-input" placeholder="At least 8 characters" required autocomplete="new-password" />
+          <button type="button" class="input-toggle-btn" id="togglePassword" aria-label="Toggle visibility">👁</button>
+        </div>
+        <div class="password-strength" id="strengthBar">
+          <div class="strength-fill" id="strengthFill"></div>
+        </div>
+        <span class="field-error" id="passwordError"></span>
+      </div>
+
+      <div id="registerError" class="form-error-msg hidden"></div>
+
+      <button type="submit" class="btn btn-primary btn-full" id="registerBtn">
+        <span class="btn-text">Create Account</span>
+        <span class="btn-spinner hidden">⟳</span>
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>Already have an account?</span></div>
+    <a href="/login" class="btn btn-outline btn-full">Sign In</a>
+    <p class="auth-back"><a href="/">← Back to home</a></p>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Pre-fill role from query param
+const params = new URLSearchParams(window.location.search);
+if (params.get('role')) {
+  const roleSelect = document.getElementById('role');
+  if ([...roleSelect.options].some(o => o.value === params.get('role'))) {
+    roleSelect.value = params.get('role');
+  }
+}
+
+document.getElementById('togglePassword')?.addEventListener('click', () => {
+  const p = document.getElementById('password');
+  p.type = p.type === 'password' ? 'text' : 'password';
+});
+
+document.getElementById('password')?.addEventListener('input', function() {
+  const strength = calcStrength(this.value);
+  const fill = document.getElementById('strengthFill');
+  fill.style.width = strength + '%';
+  fill.className = 'strength-fill strength-' + (strength < 40 ? 'weak' : strength < 70 ? 'medium' : 'strong');
+});
+
+function calcStrength(p) {
+  let s = 0;
+  if (p.length >= 8) s += 30;
+  if (p.length >= 12) s += 20;
+  if (/[A-Z]/.test(p)) s += 20;
+  if (/[0-9]/.test(p)) s += 15;
+  if (/[^a-zA-Z0-9]/.test(p)) s += 15;
+  return Math.min(s, 100);
+}
+
+document.getElementById('registerForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('registerBtn');
+  btn.querySelector('.btn-text').classList.add('hidden');
+  btn.querySelector('.btn-spinner').classList.remove('hidden');
+  btn.disabled = true;
+  document.getElementById('registerError').classList.add('hidden');
+
+  const body = {
+    name: document.getElementById('name').value.trim(),
+    email: document.getElementById('email').value.trim(),
+    role: document.getElementById('role').value,
+    password: document.getElementById('password').value,
+  };
+
+  try {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (res.ok) {
+      showToast('Account created! Signing you in...', 'success');
+      // Auto-login
+      const lr = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({email: body.email, password: body.password})
+      });
+      if (lr.ok) {
+        setTimeout(() => window.location.href = '/dashboard', 800);
+      } else {
+        window.location.href = '/login';
+      }
+    } else {
+      const errEl = document.getElementById('registerError');
+      let msg = data.error || 'Registration failed.';
+      if (data.details) {
+        msg += ' ' + Object.values(data.details).join(' ');
+      }
+      errEl.textContent = msg;
+      errEl.classList.remove('hidden');
+    }
+  } catch (err) {
+    document.getElementById('registerError').textContent = 'Network error. Please try again.';
+    document.getElementById('registerError').classList.remove('hidden');
+  } finally {
+    btn.querySelector('.btn-text').classList.remove('hidden');
+    btn.querySelector('.btn-spinner').classList.add('hidden');
+    btn.disabled = false;
+  }
+});
+</script>
+{% endblock %}
