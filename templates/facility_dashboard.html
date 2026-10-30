@@ -141,10 +141,10 @@ async function loadFacilityBatches() {
       tbody.appendChild(tr);
     });
 
-    document.getElementById('kpiTransit').textContent = transit;
-    document.getElementById('kpiReceived').textContent = received;
-    document.getElementById('kpiPendingVerify').textContent = pending;
-    document.getElementById('kpiVerified').textContent = verified;
+    animateCounter('kpiTransit', transit, 750);
+    animateCounter('kpiReceived', received, 750);
+    animateCounter('kpiPendingVerify', pending, 750);
+    animateCounter('kpiVerified', verified, 750);
 
   } catch (err) {
     showToast('Failed to load facility batches', 'error');

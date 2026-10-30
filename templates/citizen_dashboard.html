@@ -108,10 +108,10 @@ async function loadCitizenBatches() {
       tbody.appendChild(tr);
     });
 
-    document.getElementById('kpiTotal').textContent = total;
-    document.getElementById('kpiVerified').textContent = verified;
-    document.getElementById('kpiInProgress').textContent = inProgress;
-    document.getElementById('kpiWeight').textContent = totalWeight.toFixed(1) + ' kg';
+    animateCounter('kpiTotal', total, 800);
+    animateCounter('kpiVerified', verified, 800);
+    animateCounter('kpiInProgress', inProgress, 800);
+    animateCounter('kpiWeight', totalWeight.toFixed(1), 1000, ' kg');
 
   } catch (err) {
     showToast('Failed to load batches: ' + err.message, 'error');

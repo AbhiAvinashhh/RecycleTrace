@@ -35,23 +35,13 @@ const Dashboard = {
   },
 
   animateCounter(elementId, targetValue, suffix = '') {
-    const el = document.getElementById(elementId);
-    if (!el) return;
-    const start = 0;
-    const duration = 600;
-    const startTime = performance.now();
-
-    function update(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const current = Math.floor(progress * targetValue);
-      el.textContent = current.toLocaleString() + suffix;
-      if (progress < 1) requestAnimationFrame(update);
-      else el.textContent = targetValue.toLocaleString() + suffix;
+    if (typeof window.animateCounter === 'function') {
+      window.animateCounter(elementId, targetValue, 750, suffix);
+    } else {
+      const el = document.getElementById(elementId);
+      if (el) el.textContent = targetValue + suffix;
     }
-    requestAnimationFrame(update);
   }
 };
 
 window.Dashboard = Dashboard;
-

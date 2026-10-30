@@ -102,10 +102,10 @@ async function loadAdminOverview() {
     const sRes = await fetch('/api/admin/stats');
     const stats = await sRes.json();
 
-    document.getElementById('adminTotalBatches').textContent = stats.total_batches || 0;
-    document.getElementById('adminVerifiedBatches').textContent = stats.verified_recycled || 0;
-    document.getElementById('adminPendingReview').textContent = stats.pending_processing_review || 0;
-    document.getElementById('adminVerifiedFacs').textContent = stats.verified_facilities || 0;
+    animateCounter('adminTotalBatches', stats.total_batches || 0, 750);
+    animateCounter('adminVerifiedBatches', stats.verified_recycled || 0, 850);
+    animateCounter('adminPendingReview', stats.pending_processing_review || 0, 850);
+    animateCounter('adminVerifiedFacs', stats.verified_facilities || 0, 750);
 
     // Load suspicious batches from verification analytics
     const vRes = await fetch('/api/analytics/verification');

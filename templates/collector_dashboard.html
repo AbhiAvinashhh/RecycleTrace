@@ -175,9 +175,9 @@ async function loadCollectorBatches() {
       tbody.appendChild(tr);
     });
 
-    document.getElementById('kpiReady').textContent = ready;
-    document.getElementById('kpiTransit').textContent = transit;
-    document.getElementById('kpiDelivered').textContent = delivered;
+    animateCounter('kpiReady', ready, 750);
+    animateCounter('kpiTransit', transit, 750);
+    animateCounter('kpiDelivered', delivered, 750);
 
   } catch (err) {
     showToast('Failed to load collector batches', 'error');

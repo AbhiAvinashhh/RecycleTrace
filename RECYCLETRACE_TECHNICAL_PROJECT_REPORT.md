@@ -16,7 +16,7 @@
 
 | **Field** | **Details** |
 | :--- | :--- |
-| **Submitted by:** | Yeswanth Burle |
+| **Submitted by:** | Abhi Avinash |
 | **Roll No:** | 46 |
 | **Registration No:** | 12308271 |
 | **Course:** | **CSE 494** — Intelligent NoSQL Databases |
@@ -383,7 +383,7 @@ The benchmark empirically demonstrates the necessity of specialized B-Tree index
 ---
 
 ## GitHub Repository
-- **Project Repository**: `https://github.com/Yeswanth-Burle/RecycleTrace`
+- **Project Repository**: `https://github.com/AbhiAvinashhh/RecycleTrace`
 
 ---
 *RecycleTrace Technical Project Report — Page 7*

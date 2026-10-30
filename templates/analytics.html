@@ -141,13 +141,13 @@ async function loadAnalytics() {
     const ovRes = await fetch('/api/analytics/overview');
     const ov = await ovRes.json();
 
-    document.getElementById('kpiDeclared').textContent = formatWeight(ov.declared_weight_kg);
-    document.getElementById('kpiRecycled').textContent = formatWeight(ov.verified_recycled_kg);
-    document.getElementById('kpiRejected').textContent = formatWeight((ov.rejected_weight_kg || 0) + (ov.residual_weight_kg || 0));
+    animateCounter('kpiDeclared', ov.declared_weight_kg || 0, 800, ' kg');
+    animateCounter('kpiRecycled', ov.verified_recycled_kg || 0, 900, ' kg');
+    animateCounter('kpiRejected', ((ov.rejected_weight_kg || 0) + (ov.residual_weight_kg || 0)), 800, ' kg');
 
     const totalInput = ov.verified_input_kg || 0;
     const rate = totalInput > 0 ? ((ov.verified_recycled_kg / totalInput) * 100).toFixed(1) : '0.0';
-    document.getElementById('kpiRate').textContent = rate + '%';
+    animateCounter('kpiRate', rate, 1000, '%');
 
     // 2. Collections & Trends
     const collRes = await fetch('/api/analytics/collections');
