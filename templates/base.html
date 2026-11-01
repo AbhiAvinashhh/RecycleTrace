@@ -71,6 +71,9 @@
       <a href="/profile" class="nav-item {% block nav_profile %}{% endblock %}">
         <span class="nav-icon">👤</span> Profile
       </a>
+      <a href="/logout" class="nav-item" style="color: #f87171; margin-top: auto; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 0.85rem;">
+        <span class="nav-icon">🚪</span> Log Out
+      </a>
     </nav>
 
     <div class="sidebar-footer">
@@ -81,7 +84,9 @@
           <span class="user-role role-badge role-{{ current_user_role }}">{{ current_user_role | replace('_', ' ') | title }}</span>
         </div>
       </div>
-      <button class="btn btn-ghost btn-sm logout-btn" id="logoutBtn">Sign out</button>
+      <a href="/logout" class="btn btn-danger btn-sm logout-btn" style="width:100%; text-align:center; justify-content:center;">
+        <span>🚪</span> Log Out
+      </a>
     </div>
   </aside>
 
@@ -90,7 +95,13 @@
     <header class="top-bar">
       <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu">☰</button>
       <div class="top-bar-title">{% block page_title %}{% endblock %}</div>
-      <div class="top-bar-actions">{% block top_actions %}{% endblock %}</div>
+      <div class="top-bar-actions" style="display:flex; align-items:center; gap:0.75rem;">
+        {% block top_actions %}{% endblock %}
+        <a href="/logout" class="btn btn-outline btn-sm logout-top-btn" title="Log out from account" style="color:#ef4444; border-color:#fecaca; background:#fff5f5; font-weight:600;">
+          <span style="font-size:1rem;">🚪</span>
+          <span>Log Out</span>
+        </a>
+      </div>
     </header>
 
     <main class="page-content">
