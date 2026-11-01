@@ -29,8 +29,14 @@ def register_page():
 @pages_bp.route("/login")
 def login_page():
     if not _requires_login():
-        return redirect(url_for("pages.dashboard"))
-    return render_template("login.html")
+        return redirect(url_for('pages.dashboard'))
+    return render_template('login.html')
+
+
+@pages_bp.route('/logout')
+def logout_page():
+    session.clear()
+    return redirect(url_for('pages.login_page'))
 
 
 @pages_bp.route("/dashboard")
@@ -137,3 +143,4 @@ def profile():
     if _requires_login():
         return redirect(url_for("pages.login_page"))
     return render_template("profile.html")
+
